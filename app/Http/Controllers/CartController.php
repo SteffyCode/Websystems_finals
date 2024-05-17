@@ -3,24 +3,45 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
-use Cart;
+use App\Models\Cart;
 
 class CartController extends Controller
 {
 
-    public function index()
-    {
-        $cartItems = Cart::instance('cart')->content();
-        return view('cart', compact('cartItems'));
-    }
+    // public function index()
+    // {
+    //     $cartItems = Cart::newIstance('cart')->content();
+    //     return view('cart', compact('cartItems'));
+    // }
 
     public function addToCart(Request $request)
     {
-        $product = Product::find($request->id);
+        // Retreive the product details
+        $product_id = $request->product_id;
+        $quantity = $request->bod_quantity;
+        $user_id = $request->user_id;
+        $cart = Cart::where("user_id", $user_id)->first();
+
+        if (!$cart) {
+            $cart = new Cart();
+        }
+        
+        $product = Product::find($product_id);
         $price = $product->sale_price ? $product->sale_price : $product->regular_price;
-        Cart::instance('cart')->add($product->id,$product->name,$request->quantity,$price)->associate('App\Models\Product');
-        return redirect()->back()->with('message','Success ! Item has been added successfully!');
+        //Add item to the cart
+        
+        $cart = Cart::insert([
+            'user_id', $user_id,
+            'product_id', $product->id,
+            'quantity', $quantity,
+            'price', $price * $quantity
+        ]);
+    
+        if($cart) {
+            return redirect()->back()->with('message','Success ! Item has been added successfully!');
+        }
     }  
 
     public function updateCart(Request $request)
@@ -41,6 +62,11 @@ class CartController extends Controller
         return redirect()->route('cart.index');
     }
 
+    public function placeOrder(Request $request, CheckoutController $checkoutController)
+    {
+        // Call the placeOrder method from the CheckoutController
+        return $checkoutController->placeOrder($request);
+    }
     
 }
 

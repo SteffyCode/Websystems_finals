@@ -1,4 +1,8 @@
 @extends('layouts.base')
+@push('styles')
+    <link id="color-link" rel="stylesheet" type="text/css" href="{{asset('assets/css/demo2.css')}}">
+    
+@endpush
 @section('content')
 <section class="breadcrumb-section section-b-space" style="padding-top:20px;padding-bottom:20px;">
     <ul class="circles">
@@ -41,7 +45,8 @@
                 <div class="billing-address">
                     <h4>Billing Address</h4>
                     <!-- Billing Address Form -->
-                    <form>
+                    <form id="checkoutForm">
+                        @csrf
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="inputFirstName" class="form-label">First Name</label>
@@ -403,7 +408,7 @@
                         <h6>Total <span>₱{{ Cart::instance('cart')->total() }}</span></h6>
                     </div>
                     <!-- End of Cart Totals -->
-                    <button id="placeOrderButton" class="btn btn-solid-default btn fw-bold btn-lg btn-block mt-3">Place Order</button>
+                    <button type="submit" id="placeOrderButton" class="btn btn-solid-default btn fw-bold btn-lg btn-block mt-3">Place Order</button>
                 </div>
             </div>
 
@@ -413,6 +418,7 @@
     </div>
 </section>
 
+<!-- 
 <script>
     // JavaScript to toggle the visibility of payment method forms
     document.querySelectorAll('input[name="paymentMethod"]').forEach(function(input) {
@@ -434,17 +440,7 @@
         });
     });
 </script>
-<script>
-    // Function to handle the redirection
-    function redirectToCheckoutPage() {
-        window.location.href = "{{ route('checkout.success') }}";
-    }
-
-    document.getElementById('placeOrderButton').addEventListener('click', function() {
-        redirectToCheckoutPage();
-    });
-</script>
-
+-->
 <!-- Subscribe Section Start -->
 <section class="subscribe-section section-b-space">
     <div class="container">
@@ -469,4 +465,60 @@
     </div>
 </section>
 <!-- Subscribe Section End -->
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    // JavaScript to toggle the visibility of payment method forms
+    document.querySelectorAll('input[name="paymentMethod"]').forEach(function(input) {
+        input.addEventListener('change', function() {
+            document.querySelectorAll('.payment-form').forEach(function(form) {
+                form.style.display = 'none';
+            });
+            // Show the selected payment method form
+            var paymentMethod = this.value;
+            document.getElementById(paymentMethod + 'Form').style.display = 'block';
+        });
+
+        // Check for deselection of payment method
+        input.addEventListener('change', function() {
+            if (!this.checked) {
+                var paymentMethod = this.value;
+                document.getElementById(paymentMethod + 'Form').style.display = 'none';
+            }
+        });
+    });
+
+    // JavaScript to handle form submission
+    document.getElementById('placeOrderButton').addEventListener('click', function(event) {
+        event.preventDefault();
+
+        axios.post('{{ route("checkout.placeOrder") }}', {  
+            first_name: document.getElementById('inputFirstName').value,
+            last_name: document.getElementById('inputLastName').value,
+            address: document.getElementById('inputAddress').value,
+            city: document.getElementById('inputCity').value,
+            state: document.getElementById('inputState').value,
+            zip: document.getElementById('inputZip').value,
+            payment_method: document.querySelector('input[name="paymentMethod"]:checked').value,
+        })
+        .then(function(response) {
+            // Handle success
+            console.log(response.data);
+            // Redirect to success page or do any additional handling
+            window.location.href = '{{ route("checkout.success") }}';
+        })
+        .catch(function(error) {
+            // Handle error
+            if (error.response && error.response.status === 422) {
+                // Display validation errors
+                console.log(error.response.data.errors);
+            } else {
+                console.error(error);
+            }
+        });
+    });
+</script>
+
+
+
 @endsection
